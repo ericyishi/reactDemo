@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="./css/font-awesome.min.css">
+    <style type="text/css">
+        .handle {
+            width: 40px;
+            background: #fff;
+            position: absolute;
+            right: 10px;
+            top: 1px;
+            text-align: center;
+        }
+
+        .handle a {
+            display: block;
+            text-decoration: none;
+        }
+
+        .list-group-item .content {
+            padding: 0px 30px;
+        }
+
+        .user {
+            font-size: 20px;
+        }
+
+        .list-group li {
+            transition: .5s;
+            overflow: hidden;
+        }
+    </style>
+
+    <script src="vendor/react-with-addons.js"></script>
+    <script src="vendor/react-dom.js"></script>
+    <script src="vendor/browser.min.js"></script>
+    <script src="vendor/pubsub.js"></script>
+</head>
+
+<body>
+<header class="site-header jumbotron">
+    <div class="container">
+        <div class="row">
+            <div class="col-xs-12">
+                <h1 class="text-center">React的DEMO</h1>
+                <p class="text-center">实现简单的添加删除功能</p>
+            </div>
+        </div>
+    </div>
+</header>
+<div class="container" id="demo">
+
+</div>
+<script type="text/babel">
+    var delectItem = 'delectItem';
+
+    var ItemComponent = React.createClass({
+        render: function () {
+            return (
+                    <li className="list-group-item">
+                        <div className="handle">
+                            <a href="javascript:void(0)" onClick={this.delectHandle}><i className="fa fa-close"></i></a>
+                        </div>
+                        <p className="user"><span className="text-primary">{this.props.userName}</span><span>说:</span>
+                        </p>
+                        <p className="content">{this.props.content}</p>
+                    </li>
+            )
+        },
+        delectHandle: function () {
+
+            PubSub.publish(delectItem, this.props._id);
+        }
+    })
+    var ListComponent = React.createClass({
+        render: function () {
+            var isNone = this.props.listArr.length ? "none" : "block";
+
+            return (
+                    <div className="col-md-7">
+                        <h3 className="reply text-primary">留言回复</h3>
+                        <h4 style={{display: isNone}}>暂无留言，输入框添加内容</h4>
+                        <ul className="list-group">
+                            {
+                                this.props.listArr.map(function (item, index) {
+                                    return <ItemComponent key={index} {...item} />
+                                })
+                            }
+                        </ul>
+                    </div>
+            )
+        }
+    })
+    var MesComponent = React.createClass({
+        render: function () {
+            return (
+                    <div className="col-sm-offset-1 col-md-4">
+                        <form className="form-horizontal">
+                            <div className="form-group">
+                                <h3 className="text-primary">用户名</h3>
+                                <input ref="text_user" type="text" className="form-control" placeholder="用户名"/>
+                            </div>
+                            <div className="form-group">
+                                <h3 className="text-primary">留言内容</h3>
+                                <textarea ref="text_content" className="form-control" rows="6"
+                                          placeholder="留言内容"></textarea>
+                            </div>
+                            <div className="form-group">
+                                <div className="col-sm-offset-2 col-sm-10">
+                                    <button type="button" className="btn btn-primary pull-right"
+                                            onClick={this.addItemHandle}>提交
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+            )
+        },
+        addItemHandle: function () {
+            var userName = this.refs.text_user.value;
+            var content = this.refs.text_content.value;
+
+            this.props.addItem({
+                userName: userName,
+                content: content,
+                _id: Date.now()
+            });
+
+            this.refs.text_user.value = ""
+            this.refs.text_content.value = ""
+        }
+    })
+
+    var MainComponent = React.createClass({
+        getInitialState: function () {
+            return {
+                listArr: this.props.listArr
+            }
+        },
+        componentDidMount: function () {
+            PubSub.subscribe(delectItem, function (evName, data) {
+                var newArr = this.state.listArr.filter(function (item, index) {
+                    return item._id !== data
+                });
+
+                this.setState({listArr: newArr});
+
+            }.bind(this))
+        },
+        addItem: function (data) {
+            this.state.listArr.push(data);
+            this.setState({listArr: this.state.listArr})
+        },
+        render: function () {
+            return (
+                    <div className="container">
+                        <ListComponent listArr={this.state.listArr}/>
+                        <MesComponent addItem={this.addItem}/>
+                    </div>
+            )
+        }
+    });
+
+    var listArr = [
+        {
+            userName: "牛肉不加蛋",
+            content: "你好",
+            _id: Date.now()
+        }, {
+            userName: "Rick",
+            content: "哈哈哈",
+            _id: Date.now()+1
+        }
+        , {
+            userName: "多多少少",
+            content: "烧烤架大黄蜂的时刻",
+            _id: Date.now()+2
+        }
+    ]
+
+    ReactDOM.render(<MainComponent listArr={listArr}/>, document.getElementById("demo"))
+
+</script>
+</body>
+</html>
